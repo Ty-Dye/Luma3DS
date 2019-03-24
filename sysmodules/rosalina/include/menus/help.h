@@ -32,24 +32,3 @@
 #include "menu.h"
 
 extern Menu helpMenu;
-
-{
-    Draw_Lock();
-    Draw_ClearFramebuffer();
-    Draw_FlushFramebuffer();
-    Draw_Unlock();
-
-    do
-    {
-        Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "Luma3DS Help menu");
-
-
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Q1");
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Q2");
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Q3");
-
-        Draw_FlushFramebuffer();
-        Draw_Unlock();
-    }
-}
