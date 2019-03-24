@@ -48,4 +48,7 @@
         Draw_FlushFramebuffer();
         Draw_Unlock();
     }
+ 
+ while(!(waitInput() & BUTTON_B) && !terminationRequest);
+
 }
