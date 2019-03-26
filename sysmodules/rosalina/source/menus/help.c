@@ -37,7 +37,7 @@ Menu helpMenu = {
     {
         { "im real dumb", METHOD, .method = &helpMenu_imrealdumb },
         { "im dumb", METHOD, .method = &helpMenu_imdumb },
-    }
+    };
 
  
  while(!(waitInput() & BUTTON_B) && !terminationRequest);
