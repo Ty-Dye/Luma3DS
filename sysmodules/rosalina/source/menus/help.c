@@ -52,7 +52,7 @@ void helpMenu_imrealdumb(void)
     do
     {
         Draw_Lock();
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "thats right");
+        Draw_DrawString(10, 20, COLOR_WHITE, "right, press B to go back.");
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
@@ -71,7 +71,7 @@ void helpMenu_imdumb(void)
     do
     {
         Draw_Lock();
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "wrong");
+        Draw_DrawString(10, 30, COLOR_WHITE, "no");
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
