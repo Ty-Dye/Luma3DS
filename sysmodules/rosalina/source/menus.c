@@ -36,10 +36,10 @@
 #include "menus/miscellaneous.h"
 #include "menus/sysconfig.h"
 #include "menus/screen_filters.h"
+#include "menus/help.h"
 #include "ifile.h"
 #include "memory.h"
 #include "fmt.h"
-#include "help.h"
 
 Menu rosalinaMenu = {
     "Rosalina menu",
