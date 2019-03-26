@@ -26,7 +26,9 @@
 
 #include <3ds.h>
 #include "menu.h"
- 
+#include "menus/help.h"
+#include "memory.h"
+#include "draw.h"
  
  
 Menu helpMenu = {
