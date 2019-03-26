@@ -33,5 +33,5 @@
 
 extern Menu helpMenu;
 
-void helpMenu_imdumb(void)
-void helpMenu_imrealdumb(void)
+void helpMenu_imdumb(void);
+void helpMenu_imrealdumb(void);
