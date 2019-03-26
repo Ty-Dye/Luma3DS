@@ -32,7 +32,7 @@
  
  
 Menu helpMenu = {
-    "Help menu",
+    "Luma Menu",
     .nbItems = 2,
     {
         { "im real dumb", METHOD, .method = &helpMenu_imrealdumb },
