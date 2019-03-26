@@ -53,9 +53,9 @@ Menu rosalinaMenu = {
         { "System configuration...", MENU, .menu = &sysconfigMenu },
         { "Screen filters...", MENU, .menu = &screenFiltersMenu },
         { "Miscellaneous options...", MENU, .menu = &miscellaneousMenu },
-        { "Help", MENU, .menu = &helpMenu },
         { "Power off", METHOD, .method = &RosalinaMenu_PowerOff },
         { "Reboot", METHOD, .method = &RosalinaMenu_Reboot },
+        { "Luma Menu", MENU, .menu = &helpMenu },
         { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits }
     }
 };
@@ -70,25 +70,16 @@ void RosalinaMenu_ShowCredits(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "Rosalina -- Luma3DS credits");
+        Draw_DrawString(10, 10, COLOR_TITLE, "GalaxyDS credits");
 
-        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "Luma3DS (c) 2016-2019 AuroraWright, TuxSH") + SPACING_Y;
+        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "GalaxyDS by Ty-Dye") + SPACING_Y;
 
+        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Luma3DS (GalaxyDS base) by AuroraWright");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "3DSX loading code by fincs");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Networking code & basic GDB functionality by Stary");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "InputRedirection by Stary (PoC by ShinyQuagsire)");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Cheat engine by duckbill007");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Screen filters by panicbit");
-
-        posY += 2 * SPACING_Y;
-
-        Draw_DrawString(10, posY, COLOR_WHITE,
-            (
-                "Special thanks to:\n"
-                "  Bond697, WinterMute, yifanlu,\n"
-                "  Luma3DS contributors, ctrulib contributors,\n"
-                "  other people"
-            ));
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
