@@ -118,7 +118,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
 
                                                  "Activate a PIN lock.\n\n"
                                                  "The PIN will be asked each time\n"
-                                                 "Luma3DS boots.\n\n"
+                                                 "GalaxyDS boots.\n\n"
                                                  "4, 6 or 8 digits can be selected.\n\n"
                                                  "The ABXY buttons and the directional\n"
                                                  "pad buttons can be used as keys.\n\n"
@@ -192,7 +192,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                  "handlers for the ARM11 CPU.\n\n"
                                                  "Note: Disabling the exception handlers\n"
                                                  "will disqualify you from submitting\n"
-                                                 "issues or bug reports to the Luma3DS\n"
+                                                 "issues or bug reports to the GalaxyDS\n"
                                                  "GitHub repository!"
                                                };
 
