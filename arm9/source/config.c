@@ -118,12 +118,11 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
 
                                                  "Activate a PIN lock.\n\n"
                                                  "The PIN will be asked each time\n"
-                                                 "GalaxyDS boots.\n\n"
+                                                 "Your system boots.\n\n"
                                                  "4, 6 or 8 digits can be selected.\n\n"
                                                  "The ABXY buttons and the directional\n"
                                                  "pad buttons can be used as keys.\n\n"
-                                                 "A message can also be displayed\n"
-                                                 "(refer to the wiki for instructions).",
+                                                 "A message can also be displayed.",
 
                                                  "Select the New 3DS CPU mode.\n\n"
                                                  "This won't apply to\n"
@@ -153,8 +152,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
 
                                                  "Enable loading external FIRMs and\n"
                                                  "system modules.\n\n"
-                                                 "This isn't needed in most cases.\n\n"
-                                                 "Refer to the wiki for instructions.",
+                                                 "This isn't needed in most cases.",
 
                                                  "Enable overriding the region and\n"
                                                  "language configuration and the usage\n"
@@ -162,8 +160,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                  "IPS code patches and LayeredFS\n"
                                                  "for specific games.\n\n"
                                                  "Also makes certain DLCs\n"
-                                                 "for out-of-region games work.\n\n"
-                                                 "Refer to the wiki for instructions.",
+                                                 "for out-of-region games work.",
 
                                                  "Enable showing the current NAND/FIRM:\n\n"
                                                  "\t* Sys  = SysNAND\n"
@@ -174,8 +171,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                  "\t* EmuS = EmuNAND 1 with SysNAND FIRM\n"
                                                  "\t* EmXS = EmuNAND X with SysNAND FIRM\n\n"
                                                  "or a user-defined custom string in\n"
-                                                 "System Settings.\n\n"
-                                                 "Refer to the wiki for instructions.",
+                                                 "System Settings.",
 
                                                  "Enable showing the GBA boot screen\n"
                                                  "when booting GBA games.",
@@ -186,14 +182,14 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                  "and retail CIAs, but allows installing\n"
                                                  "and booting some developer software).\n\n"
                                                  "Only select this if you know what you\n"
-                                                 "are doing!",
+                                                 "are doing.",
 
                                                  "Disables the fatal error exception\n"
                                                  "handlers for the ARM11 CPU.\n\n"
                                                  "Note: Disabling the exception handlers\n"
                                                  "will disqualify you from submitting\n"
-                                                 "issues or bug reports to the GalaxyDS\n"
-                                                 "GitHub repository!"
+                                                 "issues or bug reports to the Luma-Slim\n"
+                                                 "GitHub repository!",
                                                };
 
     FirmwareSource nandType = FIRMWARE_SYSNAND;
