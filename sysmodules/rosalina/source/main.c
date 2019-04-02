@@ -35,6 +35,7 @@
 #include "MyThread.h"
 #include "menus/process_patches.h"
 #include "menus/miscellaneous.h"
+#include "menus/debugger.h"
 #include "menus/screen_filters.h"
 
 static Result stealFsReg(void)
@@ -84,11 +85,15 @@ void __appInit()
 
     if (R_FAILED(stealFsReg()) || R_FAILED(fsRegSetupPermissions()) || R_FAILED(fsInit()))
         svcBreak(USERBREAK_PANIC);
+
+    if (R_FAILED(pmDbgInit()))
+        svcBreak(USERBREAK_PANIC);
 }
 
 // this is called after main exits
 void __appExit()
 {
+    pmDbgExit();
     fsExit();
     svcCloseHandle(*fsRegGetSessionHandle());
     srvExit();
@@ -150,6 +155,14 @@ static void handleTermNotification(u32 notificationId)
     svcSignalEvent(terminationRequestEvent);
 }
 
+static void handleNextApplicationDebuggedByForce(u32 notificationId)
+{
+    (void)notificationId;
+    Handle debug = 0;
+    PMDBG_RunQueuedProcess(&debug);
+    debuggerSetNextApplicationDebugHandle(debug);
+}
+
 static const ServiceManagerServiceEntry services[] = {
     { "err:f",  1, ERRF_HandleCommands,  true },
     { "hb:ldr", 2, HBLDR_HandleCommands, true },
@@ -157,7 +170,8 @@ static const ServiceManagerServiceEntry services[] = {
 };
 
 static const ServiceManagerNotificationEntry notifications[] = {
-    { 0x100, handleTermNotification },
+    { 0x100 , handleTermNotification                },
+    { 0x1000, handleNextApplicationDebuggedByForce  },
     { 0x000, NULL },
 };
 
