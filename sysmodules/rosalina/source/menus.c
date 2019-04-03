@@ -54,7 +54,7 @@ Menu rosalinaMenu = {
         { "Miscellaneous options...", MENU, .menu = &miscellaneousMenu },
         { "Power off", METHOD, .method = &RosalinaMenu_PowerOff },
         { "Reboot", METHOD, .method = &RosalinaMenu_Reboot },
-        { "Luma Menu", MENU, .menu = &helpMenu },
+        { "Help Menu", MENU, .menu = &helpMenu },
         { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits }
     }
 };
