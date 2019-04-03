@@ -32,10 +32,10 @@
  
  
 Menu helpMenu = {
-    "Luma Menu",
+    "Help Menu",
     .nbItems = 2,
     {
-        { "im real dumb", METHOD, .method = &helpMenu_imrealdumb },
+        { "Godmode9 dosen't boot", METHOD, .method = &helpMenu_gm9boot },
         { "im dumb", METHOD, .method = &helpMenu_imdumb },
     }
 
@@ -61,7 +61,7 @@ void helpMenu_imrealdumb(void)
 }
 
 
-void helpMenu_imdumb(void)
+void helpMenu_gm9boot(void)
 {
     Draw_Lock();
     Draw_ClearFramebuffer();
@@ -71,7 +71,8 @@ void helpMenu_imdumb(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 30, COLOR_WHITE, "no");
+        Draw_DrawString(10, 30, COLOR_WHITE, "This is a known issue with Godmode9, it dose not boot via the luma \n"
+                       "Chainloader, please load it via fastboot3ds);
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
