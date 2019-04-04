@@ -1,3 +1,4 @@
+
 /*
 *   This file is part of Luma3DS
 *   Copyright (C) 2016-2019 Aurora Wright, TuxSH
@@ -24,18 +25,13 @@
 *         reasonable ways as different from the original version.
 */
 
+
 #pragma once
 
 #include <3ds/types.h>
-#include <3ds/exheader.h>
+#include "menu.h"
 
-Result fsregInit(void);
-void fsregExit(void);
-Result FSREG_CheckHostLoadId(u64 prog_handle);
-Result FSREG_LoadProgram(u64 *prog_handle, FS_ProgramInfo *title);
-Result FSREG_GetProgramInfo(ExHeader *exheader, u32 entry_count, u64 prog_handle);
-Result FSREG_UnloadProgram(u64 prog_handle);
-Result FSREG_Unregister(u32 pid);
-Result FSREG_Register(u32 pid, u64 prog_handle, FS_ProgramInfo *info, void *storageinfo);
-Result fsregSetupPermissions(void);
-Handle fsregGetHandle(void);
+extern Menu helpMenu;
+
+void helpMenu_imdumb(void);
+void helpMenu_gm9boot(void);

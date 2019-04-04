@@ -24,17 +24,58 @@
 *         reasonable ways as different from the original version.
 */
 
-#pragma once
+#include <3ds.h>
+#include "menu.h"
+#include "menus/help.h"
+#include "memory.h"
+#include "draw.h"
+ 
+ 
+Menu helpMenu = {
+    "Help Menu",
+    .nbItems = 2,
+    {
+        { "Godmode9 dosen't boot", METHOD, .method = &helpMenu_gm9boot },
+        { "im dumb", METHOD, .method = &helpMenu_imdumb },
+    }
 
-#include <3ds/types.h>
+};
 
-#define SDK_VERSION 0x70200C8
 
-/// Initializes the service API.
-Result srvSysInit(void);
+void helpMenu_imrealdumb(void)
+{
+    Draw_Lock();
+    Draw_ClearFramebuffer();
+    Draw_FlushFramebuffer();
+    Draw_Unlock();
 
-/// Exits the service API.
-Result srvSysExit(void);
+    do
+    {
+        Draw_Lock();
+        Draw_DrawString(10, 20, COLOR_WHITE, "right, press B to go back.");
 
-/// Initializes FSUSER. Requires FSREG.
-void fsSysInit(void);
+        Draw_FlushFramebuffer();
+        Draw_Unlock();
+    }
+    while(!(waitInput() & BUTTON_B) && !terminationRequest);
+}
+
+
+void helpMenu_gm9boot(void)
+{
+    Draw_Lock();
+    Draw_ClearFramebuffer();
+    Draw_FlushFramebuffer();
+    Draw_Unlock();
+
+    do
+    {
+        Draw_Lock();
+        Draw_DrawString(10, 30, COLOR_WHITE, "This is a known issue with Godmode9, it dose not boot via the luma \n"
+                       "Chainloader, please load it via fastboot3ds);
+
+        Draw_FlushFramebuffer();
+        Draw_Unlock();
+    }
+    while(!(waitInput() & BUTTON_B) && !terminationRequest);
+}
