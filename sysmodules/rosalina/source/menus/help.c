@@ -36,29 +36,10 @@ Menu helpMenu = {
     .nbItems = 2,
     {
         { "Godmode9 dosen't boot", METHOD, .method = &helpMenu_gm9boot },
-        { "im dumb", METHOD, .method = &helpMenu_imdumb },
     }
 
 };
 
-
-void helpMenu_imrealdumb(void)
-{
-    Draw_Lock();
-    Draw_ClearFramebuffer();
-    Draw_FlushFramebuffer();
-    Draw_Unlock();
-
-    do
-    {
-        Draw_Lock();
-        Draw_DrawString(10, 20, COLOR_WHITE, "right, press B to go back.");
-
-        Draw_FlushFramebuffer();
-        Draw_Unlock();
-    }
-    while(!(waitInput() & BUTTON_B) && !terminationRequest);
-}
 
 
 void helpMenu_gm9boot(void)
