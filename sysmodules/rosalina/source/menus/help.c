@@ -71,8 +71,7 @@ void helpMenu_gm9boot(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 30, COLOR_WHITE, "This is a known issue with Godmode9, it dose not boot via the luma \n"
-                       "Chainloader, please load it via fastboot3ds);
+        Draw_DrawString(10, 30, COLOR_WHITE, "This is a known bug, will be fixed soon");
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
