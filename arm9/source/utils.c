@@ -86,8 +86,17 @@ u32 waitInput(bool isMenu)
 
         if(!key)
         {
-            if((!(I2C_readReg(I2C_DEV_MCU, 0xF) & 2) && shouldShellShutdown) ||
-            (I2C_readReg(I2C_DEV_MCU, 0x10) & 1) == 1) mcuPowerOff();
+            if(shouldShellShutdown)
+            {
+                u8 shellState = I2C_readReg(I2C_DEV_MCU, 0xF);
+                wait(5);
+                if(!(shellState & 2)) mcuPowerOff();
+            }
+
+            u8 intStatus = I2C_readReg(I2C_DEV_MCU, 0x10);
+            wait(5);
+            if(intStatus & 1) mcuPowerOff(); //Power button pressed
+
             oldKey = 0;
             dPadDelay = 0;
             continue;
