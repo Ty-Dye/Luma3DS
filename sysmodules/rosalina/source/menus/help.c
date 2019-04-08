@@ -59,3 +59,5 @@ void helpMenu_gm9boot(void)
     }
     while(!(waitInput() & BUTTON_B) && !terminationRequest);
 }
+
+while(!(waitInput() & BUTTON_B) && !terminationRequest);
