@@ -33,7 +33,7 @@
  
 Menu helpMenu = {
     "Help Menu",
-    .nbItems = 2,
+    .nbItems = 1,
     {
         { "Godmode9 dosen't boot", METHOD, .method = &helpMenu_gm9boot },
     }
@@ -52,7 +52,7 @@ void helpMenu_gm9boot(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 30, COLOR_WHITE, "This is a known bug, will be fixed soon");
+        Draw_DrawString(10, 30, COLOR_WHITE, "This issue has been fixed! please try agian!");
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
