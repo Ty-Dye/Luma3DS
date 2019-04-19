@@ -24,16 +24,143 @@
 *         reasonable ways as different from the original version.
 */
 
+#define _GNU_SOURCE // for strchrnul
 #include "gdb/debug.h"
+#include "gdb/server.h"
 #include "gdb/verbose.h"
 #include "gdb/net.h"
 #include "gdb/thread.h"
 #include "gdb/mem.h"
+#include "gdb/hio.h"
 #include "gdb/watchpoints.h"
 #include "fmt.h"
 
 #include <stdlib.h>
 #include <signal.h>
+#include "pmdbgext.h"
+
+static void GDB_DetachImmediatelyExtended(GDBContext *ctx)
+{
+    // detach immediately
+    RecursiveLock_Lock(&ctx->lock);
+    ctx->state = GDB_STATE_DETACHING;
+
+    svcClearEvent(ctx->parent->statusUpdateReceived);
+    svcSignalEvent(ctx->parent->statusUpdated);
+    RecursiveLock_Unlock(&ctx->lock);
+
+    svcWaitSynchronization(ctx->parent->statusUpdateReceived, -1LL);
+
+    RecursiveLock_Lock(&ctx->lock);
+    GDB_DetachFromProcess(ctx);
+    ctx->flags &= GDB_FLAG_PROC_RESTART_MASK;
+    RecursiveLock_Unlock(&ctx->lock);
+}
+
+GDB_DECLARE_VERBOSE_HANDLER(Run)
+{
+    // Note: only titleId [mediaType [launchFlags]] is supported, and the launched title shouldn't rely on APT
+    // all 3 parameters should be hex-encoded.
+
+    // Extended remote only
+    if (!(ctx->flags & GDB_FLAG_EXTENDED_REMOTE))
+        return GDB_ReplyErrno(ctx, EPERM);
+
+    u64 titleId;
+    u32 mediaType = MEDIATYPE_NAND;
+    u32 launchFlags = PMLAUNCHFLAG_LOAD_DEPENDENCIES;
+
+    char args[3][32] = {{0}};
+    char *pos = ctx->commandData;
+    for (u32 i = 0; i < 3 && *pos != 0; i++)
+    {
+        char *pos2 = strchrnul(pos, ';');
+        u32 dist = pos2 - pos;
+        if (dist < 2)
+            return GDB_ReplyErrno(ctx, EILSEQ);
+        if (dist % 2 == 1)
+            return GDB_ReplyErrno(ctx, EILSEQ);
+
+        if (dist / 2 > 16) // buffer overflow check
+            return GDB_ReplyErrno(ctx, EINVAL);
+
+        u32 n = GDB_DecodeHex(args[i], pos, dist / 2);
+        if (n == 0)
+            return GDB_ReplyErrno(ctx, EILSEQ);
+        pos = *pos2 == 0 ? pos2 : pos2 + 1;
+    }
+
+    if (args[0][0] == 0)
+        return GDB_ReplyErrno(ctx, EINVAL); // first arg mandatory
+
+    if (GDB_ParseIntegerList64(&titleId, args[0], 1, 0, 0, 16, false) == NULL)
+        return GDB_ReplyErrno(ctx, EINVAL);
+
+    if (args[1][0] != 0 && (GDB_ParseIntegerList(&mediaType, args[1], 1, 0, 0, 16, true) == NULL || mediaType >= 0x100))
+        return GDB_ReplyErrno(ctx, EINVAL);
+
+    if (args[2][0] != 0 && GDB_ParseIntegerList(&launchFlags, args[2], 1, 0, 0, 16, true) == NULL)
+        return GDB_ReplyErrno(ctx, EINVAL);
+
+    FS_ProgramInfo progInfo;
+    progInfo.mediaType = (FS_MediaType)mediaType;
+    progInfo.programId = titleId;
+
+    RecursiveLock_Lock(&ctx->lock);
+    Result r = GDB_CreateProcess(ctx, &progInfo, launchFlags);
+
+    if (R_FAILED(r))
+    {
+        if(ctx->debug != 0)
+            GDB_DetachImmediatelyExtended(ctx);
+        RecursiveLock_Unlock(&ctx->lock);
+        return GDB_ReplyErrno(ctx, EPERM);
+    }
+
+    RecursiveLock_Unlock(&ctx->lock);
+    return R_SUCCEEDED(r) ? GDB_SendStopReply(ctx, &ctx->latestDebugEvent) : GDB_ReplyErrno(ctx, EPERM);
+}
+
+GDB_DECLARE_HANDLER(Restart)
+{
+    // Note: removed from gdb
+    // Extended remote only & process must have been created
+    if (!(ctx->flags & GDB_FLAG_EXTENDED_REMOTE) || !(ctx->flags & GDB_FLAG_CREATED))
+        return GDB_ReplyErrno(ctx, EPERM);
+
+    FS_ProgramInfo progInfo = ctx->launchedProgramInfo;
+    u32 launchFlags = ctx->launchedProgramLaunchFlags;
+
+    ctx->flags |= GDB_FLAG_TERMINATE_PROCESS;
+    if (ctx->flags & GDB_FLAG_EXTENDED_REMOTE)
+        GDB_DetachImmediatelyExtended(ctx);
+    
+    RecursiveLock_Lock(&ctx->lock);
+    Result r = GDB_CreateProcess(ctx, &progInfo, launchFlags);
+    if (R_FAILED(r) && ctx->debug != 0)
+        GDB_DetachImmediatelyExtended(ctx);
+    RecursiveLock_Unlock(&ctx->lock);
+    return 0;
+}
+
+GDB_DECLARE_VERBOSE_HANDLER(Attach)
+{
+    // Extended remote only
+    if (!(ctx->flags & GDB_FLAG_EXTENDED_REMOTE))
+        return GDB_ReplyErrno(ctx, EPERM);
+
+    u32 pid;
+    if(GDB_ParseHexIntegerList(&pid, ctx->commandData, 1, 0) == NULL)
+        return GDB_ReplyErrno(ctx, EILSEQ);
+
+    RecursiveLock_Lock(&ctx->lock);
+    ctx->pid = pid;
+    Result r = GDB_AttachToProcess(ctx);
+    if(R_FAILED(r))
+        GDB_DetachImmediatelyExtended(ctx);
+    RecursiveLock_Unlock(&ctx->lock);
+    return R_SUCCEEDED(r) ? GDB_SendStopReply(ctx, &ctx->latestDebugEvent) : GDB_ReplyErrno(ctx, EPERM);
+}
 
 /*
     Since we can't select particular threads to continue (and that's uncompliant behavior):
@@ -44,6 +171,8 @@
 GDB_DECLARE_HANDLER(Detach)
 {
     ctx->state = GDB_STATE_DETACHING;
+    if (ctx->flags & GDB_FLAG_EXTENDED_REMOTE)
+        GDB_DetachImmediatelyExtended(ctx);
     return GDB_ReplyOk(ctx);
 }
 
@@ -51,6 +180,9 @@ GDB_DECLARE_HANDLER(Kill)
 {
     ctx->state = GDB_STATE_DETACHING;
     ctx->flags |= GDB_FLAG_TERMINATE_PROCESS;
+    if (ctx->flags & GDB_FLAG_EXTENDED_REMOTE)
+        GDB_DetachImmediatelyExtended(ctx);
+
     return 0;
 }
 
@@ -65,7 +197,7 @@ GDB_DECLARE_HANDLER(Break)
     }
 }
 
-static void GDB_ContinueExecution(GDBContext *ctx)
+void GDB_ContinueExecution(GDBContext *ctx)
 {
     ctx->selectedThreadId = ctx->selectedThreadIdForContinuing = 0;
     svcContinueDebugEvent(ctx->debug, ctx->continueFlags);
@@ -153,7 +285,15 @@ GDB_DECLARE_VERBOSE_HANDLER(Continue)
 
 GDB_DECLARE_HANDLER(GetStopReason)
 {
-    return GDB_SendStopReply(ctx, &ctx->latestDebugEvent);
+    if (ctx->processEnded && ctx->processExited) {
+        return GDB_SendPacket(ctx, "W00", 3);
+    } else if (ctx->processEnded && !ctx->processExited) {
+        return GDB_SendPacket(ctx, "X0f", 3);
+    } else if (ctx->debug == 0) {
+        return GDB_SendPacket(ctx, "W00", 3);
+    } else {
+        return GDB_SendStopReply(ctx, &ctx->latestDebugEvent);
+    }
 }
 
 static int GDB_ParseCommonThreadInfo(char *out, GDBContext *ctx, int sig)
@@ -251,6 +391,8 @@ void GDB_PreprocessDebugEvent(GDBContext *ctx, DebugEventInfo *info)
                 info->flags = 1;
                 info->syscall.syscall = sz;
             }
+            else if (info->output_string.string_size == 0)
+                GDB_FetchPackedHioRequest(ctx, info->output_string.string_addr);
 
             break;
         }
@@ -447,25 +589,34 @@ int GDB_SendStopReply(GDBContext *ctx, const DebugEventInfo *info)
 
         case DBGEVENT_OUTPUT_STRING:
         {
-            u32 addr = info->output_string.string_addr;
-            u32 remaining = info->output_string.string_size;
-            u32 sent = 0;
-            int total = 0;
-            while(remaining > 0)
+            // Regular "output string"
+            if (!GDB_IsHioInProgress(ctx))
             {
-                u32 pending = (GDB_BUF_LEN - 1) / 2;
-                pending = pending < remaining ? pending : remaining;
+                u32 addr = info->output_string.string_addr;
+                u32 remaining = info->output_string.string_size;
+                u32 sent = 0;
+                int total = 0;
+                while(remaining > 0)
+                {
+                    u32 pending = (GDB_BUF_LEN - 1) / 2;
+                    pending = pending < remaining ? pending : remaining;
 
-                int res = GDB_SendMemory(ctx, "O", 1, addr + sent, pending);
-                if(res < 0 || (u32) res != 5 + 2 * pending)
-                    break;
+                    int res = GDB_SendMemory(ctx, "O", 1, addr + sent, pending);
+                    if(res < 0 || (u32) res != 5 + 2 * pending)
+                        break;
 
-                sent += pending;
-                remaining -= pending;
-                total += res;
+                    sent += pending;
+                    remaining -= pending;
+                    total += res;
+                }
+
+                return total;
+            }
+            else // HIO
+            {
+                return GDB_SendCurrentHioRequest(ctx);
             }
 
-            return total;
         }
         default:
             break;
@@ -492,7 +643,8 @@ int GDB_HandleDebugEvents(GDBContext *ctx)
     GDB_PreprocessDebugEvent(ctx, &info);
 
     int ret = 0;
-    bool continueAutomatically = info.type == DBGEVENT_OUTPUT_STRING || info.type == DBGEVENT_ATTACH_PROCESS ||
+    bool continueAutomatically = (info.type == DBGEVENT_OUTPUT_STRING  && !GDB_IsHioInProgress(ctx)) ||
+                                info.type == DBGEVENT_ATTACH_PROCESS ||
                                 (info.type == DBGEVENT_ATTACH_THREAD && (info.attach_thread.creator_thread_id == 0 || !ctx->catchThreadEvents)) ||
                                 (info.type == DBGEVENT_EXIT_THREAD && (info.exit_thread.reason >= EXITTHREAD_EVENT_EXIT_PROCESS || !ctx->catchThreadEvents)) ||
                                 info.type == DBGEVENT_EXIT_PROCESS || !(info.flags & 1);

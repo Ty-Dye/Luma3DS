@@ -26,6 +26,7 @@
 
 #include "gdb.h"
 #include "gdb/net.h"
+#include "gdb/server.h"
 
 #include "gdb/debug.h"
 
@@ -69,7 +70,7 @@ Result GDB_AttachToProcess(GDBContext *ctx)
     // The second case will have, after RunQueuedProcess: attach process, debugger break, attach thread (with creator = 0)
 
     if (!(ctx->flags & GDB_FLAG_ATTACHED_AT_START))
-        svcDebugActiveProcess(&ctx->debug, ctx->pid);
+        r = svcDebugActiveProcess(&ctx->debug, ctx->pid);
     else
     {
         r = 0;
@@ -78,9 +79,7 @@ Result GDB_AttachToProcess(GDBContext *ctx)
     {
         // Note: ctx->pid will be (re)set while processing 'attach process'
         DebugEventInfo *info = &ctx->latestDebugEvent;
-        ctx->state = GDB_STATE_CONNECTED;
         ctx->processExited = ctx->processEnded = false;
-        ctx->latestSentPacketSize = 0;
         if (!(ctx->flags & GDB_FLAG_ATTACHED_AT_START))
         {
             while(R_SUCCEEDED(svcGetProcessDebugEvent(info, ctx->debug)) &&
@@ -114,7 +113,10 @@ Result GDB_AttachToProcess(GDBContext *ctx)
     else
         return r;
 
-    return svcSignalEvent(ctx->processAttachedEvent);
+    r = svcSignalEvent(ctx->processAttachedEvent);
+    if (R_SUCCEEDED(r))
+        ctx->state = GDB_STATE_ATTACHED;
+    return r;
 }
 
 void GDB_DetachFromProcess(GDBContext *ctx)
@@ -138,8 +140,6 @@ void GDB_DetachFromProcess(GDBContext *ctx)
     svcKernelSetState(0x10002, ctx->pid, false);
     memset(ctx->svcMask, 0, 32);
 
-    memset(ctx->memoryOsInfoXmlData, 0, sizeof(ctx->memoryOsInfoXmlData));
-    memset(ctx->processesOsInfoXmlData, 0, sizeof(ctx->processesOsInfoXmlData));
     memset(ctx->threadListData, 0, sizeof(ctx->threadListData));
     ctx->threadListDataPos = 0;
 
@@ -169,18 +169,53 @@ void GDB_DetachFromProcess(GDBContext *ctx)
 
     svcCloseHandle(ctx->debug);
     ctx->debug = 0;
-
+    memset(&ctx->launchedProgramInfo, 0, sizeof(FS_ProgramInfo));
+    ctx->launchedProgramLaunchFlags = 0;
 
     ctx->eventToWaitFor = ctx->processAttachedEvent;
     ctx->continueFlags = (DebugFlags)(DBG_SIGNAL_FAULT_EXCEPTION_EVENTS | DBG_INHIBIT_USER_CPU_EXCEPTION_HANDLERS);
     ctx->pid = 0;
-    ctx->currentThreadId = ctx->selectedThreadId = ctx->selectedThreadIdForContinuing = 0;
+    ctx->currentThreadId = 0;
+    ctx->selectedThreadId = 0;
+    ctx->selectedThreadIdForContinuing = 0;
     ctx->nbThreads = 0;
     ctx->totalNbCreatedThreads = 0;
     memset(ctx->threadInfos, 0, sizeof(ctx->threadInfos));
+
+    ctx->currentHioRequestTargetAddr = 0;
+    memset(&ctx->currentHioRequest, 0, sizeof(PackedGdbHioRequest));
+
+    ctx->state = GDB_STATE_CONNECTED;
+}
+
+Result GDB_CreateProcess(GDBContext *ctx, const FS_ProgramInfo *progInfo, u32 launchFlags)
+{
+    Handle debug = 0;
+    ctx->debug = 0;
+    Result r = PMDBG_LaunchTitleDebug(&debug, progInfo, launchFlags);
+    if(R_FAILED(r))
+        return r;
+    
+    ctx->flags |= GDB_FLAG_CREATED | GDB_FLAG_ATTACHED_AT_START;
+    ctx->debug = debug;
+    ctx->launchedProgramInfo = *progInfo;
+    ctx->launchedProgramLaunchFlags = launchFlags;
+    r = GDB_AttachToProcess(ctx);
+    return r;
 }
 
 GDB_DECLARE_HANDLER(Unsupported)
 {
     return GDB_ReplyEmpty(ctx);
+}
+
+GDB_DECLARE_HANDLER(EnableExtendedMode)
+{
+    if (ctx->localPort >= GDB_PORT_BASE && ctx->localPort < GDB_PORT_BASE + MAX_DEBUG)
+    {
+        ctx->flags |= GDB_FLAG_EXTENDED_REMOTE;
+        return GDB_ReplyOk(ctx);
+    }
+    else
+        return GDB_ReplyEmpty(ctx);
 }
