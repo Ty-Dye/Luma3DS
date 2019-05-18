@@ -52,10 +52,11 @@ Menu rosalinaMenu = {
         { "System configuration...", MENU, .menu = &sysconfigMenu },
         { "Blue light reduction...", MENU, .menu = &screenFiltersMenu },
         { "Miscellaneous options...", MENU, .menu = &miscellaneousMenu },
-        { "Power off", METHOD, .method = &RosalinaMenu_PowerOff },
-        { "Reboot", METHOD, .method = &RosalinaMenu_Reboot },
         { "Help Menu", MENU, .menu = &helpMenu },
         { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits }
+        { "----------------------------", METHOD, .method = &RosalinaMenu_PowerOff },        
+        { "Power off", METHOD, .method = &RosalinaMenu_PowerOff },
+        { "Reboot", METHOD, .method = &RosalinaMenu_Reboot },
     }
 };
 
