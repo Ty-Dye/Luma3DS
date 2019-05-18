@@ -1,27 +1,8 @@
 /*
-*   This file is part of Luma3DS
+*   This file is part of Luma3DS.
 *   Copyright (C) 2016-2019 Aurora Wright, TuxSH
 *
-*   This program is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 3 of the License, or
-*   (at your option) any later version.
-*
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*   GNU General Public License for more details.
-*
-*   You should have received a copy of the GNU General Public License
-*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*   Additional Terms 7.b and 7.c of GPLv3 apply to this file:
-*       * Requiring preservation of specified reasonable legal notices or
-*         author attributions in that material or in the Appropriate Legal
-*         Notices displayed by works containing it.
-*       * Prohibiting misrepresentation of the origin of that material,
-*         or requiring that modified versions of such material be marked in
-*         reasonable ways as different from the original version.
+*   SPDX-License-Identifier: (MIT OR GPL-2.0-or-later)
 */
 
 #include "gdb/server.h"
@@ -192,6 +173,8 @@ int GDB_AcceptClient(GDBContext *ctx)
 int GDB_CloseClient(GDBContext *ctx)
 {
     RecursiveLock_Lock(&ctx->lock);
+    svcClearEvent(ctx->processAttachedEvent);
+    ctx->eventToWaitFor = ctx->processAttachedEvent;
     svcClearEvent(ctx->parent->statusUpdateReceived);
     svcSignalEvent(ctx->parent->statusUpdated); // note: monitor will be waiting for lock
     RecursiveLock_Unlock(&ctx->lock);
@@ -199,8 +182,25 @@ int GDB_CloseClient(GDBContext *ctx)
     svcWaitSynchronization(ctx->parent->statusUpdateReceived, -1LL);
 
     RecursiveLock_Lock(&ctx->lock);
-    GDB_DetachFromProcess(ctx);
+    if (ctx->state >= GDB_STATE_ATTACHED)
+        GDB_DetachFromProcess(ctx);
+
+    ctx->localPort = 0;
+    ctx->enableExternalMemoryAccess = false;
+    ctx->flags = 0;
     ctx->state = GDB_STATE_DISCONNECTED;
+
+    ctx->catchThreadEvents = false;
+
+    memset(&ctx->latestDebugEvent, 0, sizeof(DebugEventInfo));
+    memset(ctx->memoryOsInfoXmlData, 0, sizeof(ctx->memoryOsInfoXmlData));
+    memset(ctx->processesOsInfoXmlData, 0, sizeof(ctx->processesOsInfoXmlData));
+
+    for (u32 i = 0; i < MAX_TIO_OPEN_FILE; i++)
+        IFile_Close(&ctx->openTioFileInfos[i].f);
+    memset(ctx->openTioFileInfos, 0, sizeof(ctx->openTioFileInfos));
+    ctx->numOpenTioFiles = 0;
+
     RecursiveLock_Unlock(&ctx->lock);
     return 0;
 }
@@ -227,9 +227,6 @@ GDBContext *GDB_GetClient(GDBServer *server, u16 port)
             return NULL;
         }
 
-        if (ctx->localPort == GDB_PORT_BASE + MAX_DEBUG)
-            TaskRunner_WaitReady(); // Finish grabbing new process debug, if anything...
-
         ctx->flags |= GDB_FLAG_USED;
         ctx->state = GDB_STATE_CONNECTED;
         ctx->parent = server;
@@ -254,25 +251,27 @@ GDBContext *GDB_GetClient(GDBServer *server, u16 port)
     }
 
     GDB_UnlockAllContexts(server);
+    if (port == GDB_PORT_BASE + MAX_DEBUG)
+    {
+        // this is not sufficient/foolproof and is buggy: TaskRunner_WaitReady(); // Finish grabbing new process debug, if anything...
+        bool ok = false;
+        do
+        {
+            svcSleepThread(5 * 1000 * 1000LL);
+            RecursiveLock_Lock(&ctx->lock);
+            ok = ctx->debug != 0;
+            RecursiveLock_Unlock(&ctx->lock);
+        }
+        while (!ok);
+    }
+
     return ctx;
 }
 
 void GDB_ReleaseClient(GDBServer *server, GDBContext *ctx)
 {
     (void)server;
-    RecursiveLock_Lock(&ctx->lock);
-    ctx->localPort = 0;
-    ctx->enableExternalMemoryAccess = false;
-    ctx->flags = 0;
-    ctx->state = GDB_STATE_DISCONNECTED;
-
-    ctx->catchThreadEvents = false;
-
-    memset(&ctx->latestDebugEvent, 0, sizeof(DebugEventInfo));
-    memset(ctx->memoryOsInfoXmlData, 0, sizeof(ctx->memoryOsInfoXmlData));
-    memset(ctx->processesOsInfoXmlData, 0, sizeof(ctx->processesOsInfoXmlData));
-
-    RecursiveLock_Unlock(&ctx->lock);
+    (void)ctx;
 }
 
 static const struct
@@ -344,9 +343,20 @@ int GDB_DoPacket(GDBContext *ctx)
     else
         ret = 0;
 
-    RecursiveLock_Unlock(&ctx->lock);
     if(ctx->state == GDB_STATE_DETACHING)
-        return (ctx->flags & GDB_FLAG_EXTENDED_REMOTE) ? ret : -1;
+    {
+        if(ctx->flags & GDB_FLAG_EXTENDED_REMOTE)
+        {
+            ctx->state = GDB_STATE_CONNECTED;
+            RecursiveLock_Unlock(&ctx->lock);
+            return ret;
+        }
+        else
+        {
+            RecursiveLock_Unlock(&ctx->lock);
+            return -1;
+        }
+    }
 
     if((oldFlags & GDB_FLAG_PROCESS_CONTINUING) && !(ctx->flags & GDB_FLAG_PROCESS_CONTINUING))
     {
@@ -356,5 +366,6 @@ int GDB_DoPacket(GDBContext *ctx)
     else if(!(oldFlags & GDB_FLAG_PROCESS_CONTINUING) && (ctx->flags & GDB_FLAG_PROCESS_CONTINUING))
         svcSignalEvent(ctx->continuedEvent);
 
+    RecursiveLock_Unlock(&ctx->lock);
     return ret;
 }

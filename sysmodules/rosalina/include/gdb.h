@@ -1,27 +1,8 @@
 /*
-*   This file is part of Luma3DS
+*   This file is part of Luma3DS.
 *   Copyright (C) 2016-2019 Aurora Wright, TuxSH
 *
-*   This program is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 3 of the License, or
-*   (at your option) any later version.
-*
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*   GNU General Public License for more details.
-*
-*   You should have received a copy of the GNU General Public License
-*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*   Additional Terms 7.b and 7.c of GPLv3 apply to this file:
-*       * Requiring preservation of specified reasonable legal notices or
-*         author attributions in that material or in the Appropriate Legal
-*         Notices displayed by works containing it.
-*       * Prohibiting misrepresentation of the origin of that material,
-*         or requiring that modified versions of such material be marked in
-*         reasonable ways as different from the original version.
+*   SPDX-License-Identifier: (MIT OR GPL-2.0-or-later)
 */
 
 #pragma once
@@ -33,14 +14,18 @@
 #include "pmdbgext.h"
 #include "sock_util.h"
 #include "memory.h"
+#include "ifile.h"
 
 #define MAX_DEBUG           3
 #define MAX_DEBUG_THREAD    127
 #define MAX_BREAKPOINT      256
+
+#define MAX_TIO_OPEN_FILE   32
+
 // 512+24 is the ideal size as IDA will try to read exactly 0x100 bytes at a time. Add 4 to this, for $#<checksum>, see below.
 // IDA seems to want additional bytes as well.
 // 1024 is fine enough to put all regs in the 'T' stop reply packets
-#define GDB_BUF_LEN 1024
+#define GDB_BUF_LEN 2048
 
 #define GDB_HANDLER(name)           GDB_Handle##name
 #define GDB_QUERY_HANDLER(name)     GDB_HANDLER(Query##name)
@@ -71,10 +56,16 @@ typedef struct PackedGdbHioRequest
     size_t stringLengths[8];
 
     // Return
-    int retval;
+    s64 retval;
     int gdbErrno;
     bool ctrlC;
 } PackedGdbHioRequest;
+
+typedef struct GdbTioFileInfo
+{
+    IFile f;
+    int flags;
+} GdbTioFileInfo;
 
 enum
 {
@@ -149,6 +140,9 @@ typedef struct GDBContext
     u32 currentHioRequestTargetAddr;
     PackedGdbHioRequest currentHioRequest;
 
+    GdbTioFileInfo openTioFileInfos[MAX_TIO_OPEN_FILE];
+    u32 numOpenTioFiles;
+
     bool enableExternalMemoryAccess;
     char *commandData, *commandEnd;
     int latestSentPacketSize;
@@ -158,7 +152,7 @@ typedef struct GDBContext
     u32 threadListDataPos;
 
     char memoryOsInfoXmlData[0x800];
-    char processesOsInfoXmlData[0x2000];
+    char processesOsInfoXmlData[0x1800];
 } GDBContext;
 
 typedef int (*GDBCommandHandler)(GDBContext *ctx);
