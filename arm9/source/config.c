@@ -185,11 +185,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                                  "are doing.",
 
                                                  "Disables the fatal error exception\n"
-                                                 "handlers for the ARM11 CPU.\n\n"
-                                                 "Note: Disabling the exception handlers\n"
-                                                 "will disqualify you from submitting\n"
-                                                 "issues or bug reports to the Luma-Slim\n"
-                                                 "GitHub repository!",
+                                                 "handlers for the ARM11 CPU.",
                                                };
 
     FirmwareSource nandType = FIRMWARE_SYSNAND;
