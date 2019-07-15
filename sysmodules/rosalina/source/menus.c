@@ -43,7 +43,7 @@
 
 Menu rosalinaMenu = {
     "Rosalina menu",
-    .nbItems = 12,
+    .nbItems = 11,
     {
         { "New 3DS menu...", MENU, .menu = &N3DSMenu },
         { "Cheat codes...", METHOD, .method = &RosalinaMenu_Cheats },
