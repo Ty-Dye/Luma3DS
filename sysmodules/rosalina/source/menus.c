@@ -55,7 +55,7 @@ Menu rosalinaMenu = {
         { "Help Menu", MENU, .menu = &helpMenu },
         { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits },
         { "Power off", METHOD, .method = &RosalinaMenu_PowerOff },
-        { "Reboot", METHOD, .method = &RosalinaMenu_Reboot },
+        { "Reboot", METHOD, .method = &RosalinaMenu_Reboot }
     }
 };
 
