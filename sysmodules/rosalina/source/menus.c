@@ -53,7 +53,7 @@ Menu rosalinaMenu = {
         { "Blue light reduction...", MENU, .menu = &screenFiltersMenu },
         { "Miscellaneous options...", MENU, .menu = &miscellaneousMenu },
         { "Help Menu", MENU, .menu = &helpMenu },
-        { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits }    
+        { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits },
         { "Power off", METHOD, .method = &RosalinaMenu_PowerOff },
         { "Reboot", METHOD, .method = &RosalinaMenu_Reboot },
     }
@@ -143,4 +143,3 @@ void RosalinaMenu_PowerOff(void) // Soft shutdown.
 }
 
 // extern u8 framebufferCache[FB_BOTTOM_SIZE];
-
