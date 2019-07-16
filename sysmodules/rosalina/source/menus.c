@@ -1,3 +1,4 @@
+
 /*
 *   This file is part of Luma3DS
 *   Copyright (C) 2016-2019 Aurora Wright, TuxSH
@@ -36,7 +37,6 @@
 #include "menus/miscellaneous.h"
 #include "menus/sysconfig.h"
 #include "menus/screen_filters.h"
-#include "menus/help.h"
 #include "ifile.h"
 #include "memory.h"
 #include "fmt.h"
@@ -46,17 +46,16 @@ Menu rosalinaMenu = {
     .nbItems = 11,
     {
         { "New 3DS menu...", MENU, .menu = &N3DSMenu },
-        { "Cheat codes...", METHOD, .method = &RosalinaMenu_Cheats },
+        { "Cheats...", METHOD, .method = &RosalinaMenu_Cheats },
         { "Process list", METHOD, .method = &RosalinaMenu_ProcessList },
+        { "Take screenshot (slow!)", METHOD, .method = &RosalinaMenu_TakeScreenshot },
         { "Debugger options...", MENU, .menu = &debuggerMenu },
         { "System configuration...", MENU, .menu = &sysconfigMenu },
-        { "Blue light reduction...", MENU, .menu = &screenFiltersMenu },
+        { "Screen filters...", MENU, .menu = &screenFiltersMenu },
         { "Miscellaneous options...", MENU, .menu = &miscellaneousMenu },
-        { "Help Menu", MENU, .menu = &helpMenu },
-        { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits },
-        { "Screenshot", METHOD, .method = &RosalinaMenu_TakeScreenshot },
         { "Power off", METHOD, .method = &RosalinaMenu_PowerOff },
-        { "Reboot", METHOD, .method = &RosalinaMenu_Reboot }
+        { "Reboot", METHOD, .method = &RosalinaMenu_Reboot },
+        { "Credits", METHOD, .method = &RosalinaMenu_ShowCredits }
     }
 };
 
@@ -70,17 +69,23 @@ void RosalinaMenu_ShowCredits(void)
     do
     {
         Draw_Lock();
-        Draw_DrawString(10, 10, COLOR_TITLE, "Luma-Slim credits");
+        Draw_DrawString(10, 10, COLOR_TITLE, "Rosalina -- Luma3DS credits");
 
-        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "Luma-Slim by Ty-Dye") + SPACING_Y;
+        u32 posY = Draw_DrawString(10, 30, COLOR_WHITE, "Luma3DS (c) 2016-2019 AuroraWright, TuxSH") + SPACING_Y;
 
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Luma3DS (project base) by AuroraWright");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "3DSX loading code by fincs");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Networking code & basic GDB functionality by Stary");
         posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "InputRedirection by Stary (PoC by ShinyQuagsire)");
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Cheat engine by duckbill007");
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "Screen filters by panicbit");
-        posY = Draw_DrawString(10, posY + SPACING_Y, COLOR_WHITE, "And many more....");
+
+        posY += 2 * SPACING_Y;
+
+        Draw_DrawString(10, posY, COLOR_WHITE,
+            (
+                "Special thanks to:\n"
+                "  Bond697, WinterMute, piepie62, yifanlu\n"
+                "  Luma3DS contributors, ctrulib contributors,\n"
+                "  other people"
+            ));
 
         Draw_FlushFramebuffer();
         Draw_Unlock();
@@ -140,8 +145,9 @@ void RosalinaMenu_PowerOff(void) // Soft shutdown.
         else if(pressed & BUTTON_B)
             return;
     }
-    while(!terminationRequest)
-// extern u8 framebufferCache[FB_BOTTOM_SIZE];
+    while(!terminationRequest);
+}
+
 extern u8 framebufferCache[FB_BOTTOM_SIZE];
 void RosalinaMenu_TakeScreenshot(void)
 {
