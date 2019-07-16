@@ -399,5 +399,3 @@ void MiscellaneousMenu_SyncTimeDate(void)
     while(!(input & BUTTON_B) && !terminationRequest);
 
 }
-
-//
