@@ -27,7 +27,7 @@
 #include <3ds.h>
 #include "menus/miscellaneous.h"
 #include "input_redirection.h"
-#include "ntp.h"
+//#include "ntp.h"
 #include "memory.h"
 #include "draw.h"
 #include "hbloader.h"
